@@ -1,6 +1,7 @@
 # -----------------------------
 # Load Data
 # -----------------------------
+import os
 import json
 import csv
 import pandas as pd
@@ -19,58 +20,85 @@ class DataLoader:
     """
     Loads energy system input data for a given configuration/question from structured CSV and json files
     and an auxiliary configuration metadata file.
-    
-    Example usage:
-    open interactive window in VSCode,
-    >>> cd ../../
-    run the script data_loader.py in the interactive window,
-    >>> data = DataLoader(input_path='..')
     """
     question: str
     input_path: Path
 
-    def __init__(self):
+    def __init__(self, question: str, input_path: str = 'data/'):
         """
-        Post-initialization to load and validate all required datasets (placeholder function)
-
-        example usage:
-        self.input_path = Path(self.input_path).resolve()
+        Initialize DataLoader with question name and input path.
+        Args:
+            question (str): Name of the question/scenario to load data for
+            input_path (str): Path to the directory containing input data files
+        """
+        self.question = question
+        self.input_path = Path(input_path) / self.question
+        if not self.input_path.exists():
+            raise FileNotFoundError(f"Input path {self.input_path} does not exist.")
         
-        # Load metadata (auxiliary scenario data)
-        self.load_aux_data('question1a_scenario1_aux_data.yaml')
-        
-        # Load CSV and json datasets
-        self.data()
-        """
-        pass
+        self._load_dataset()
+    
 
-    def _load_dataset(self, question_name: str):
-        """Helper function to load all CSV or json files, using the appropriate method based on file extension.
-        
-        example usage: 
-        call the load_dataset() function from utils.py to load all files in the input_path directory
-        save all data as class attributes (e.g. self.demand, self.wind, etc.), structured as pandas DataFrames or Series (or other format as prefered)
+    def _load_dataset(self):
         """
-        pass
+        Load all relevant CSV and json files from the input_path directory.
+        """
+        for file_name in os.listdir(self.input_path):
+            if file_name.endswith('.csv') or file_name.endswith('.json'):
+                self._load_data_file(file_name)
+        
 
 
-    def _load_data_file(self, question_name: str, file_name: str):
+    def _load_data_file(self, file_name: str):
         """
-        Placeholder function 
-        Helper function to load a specific CSV or json file, using the appropriate method based on file extension.. Raises FileNotFoundError if missing.
-        
-        example usage: 
-        define and call a load_data_file() function from utils.py to load a specific file in the input_path directory
-        save all data as class attributes (e.g. self.demand, self.wind, etc.), structured as pandas DataFrames or Series (or other format as prefered)"""
-        pass
+        Load a single data file (CSV or JSON) and store it as a class attribute.
+        Args:
+            file_name (str): Name of the file to load
+        """
+        file_path = self.input_path / file_name
+        data_name = file_name.split('.')[0]  # Use the file name (without extension) as the attribute name
 
-    def load_aux_data(self, question_name: str, filename: str):
-        """
-        Placeholder Helper function to Load auxiliary metadata for the scenario/question from a YAML/json file or other formats
+        try:
+            if file_name.endswith('.csv'):
+                setattr(self, data_name, pd.read_csv(file_path))
+            elif file_name.endswith('.json'):
+                with open(file_path, 'r') as f:
+                    setattr(self, data_name, json.load(f))
+            else: 
+                print(f"Unsupported file format for {file_name}. Only .csv and .json are supported.")
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Required file {file_name} not found in {self.input_path}")
         
-        Example application: 
-        define and call a load_aux_data() function from utils.py to load a specific auxiliary file in the input_path directory
-        Save the content as s class attributes, in a dictionary, pd datframe or other: self.aux_data
-        Attach key values as class attributes (flattened).
+    def get_data(self):
         """
-        pass
+        Get all loaded data as a dictionary for DataProcessor.
+        
+        Returns:
+            Dictionary with all loaded data files
+        """
+        data_dict = {}
+        
+        # Get all attributes that are data (not methods or private attributes)
+        for attr_name in dir(self):
+            if not attr_name.startswith('_') and attr_name not in ['question', 'input_path', 'get_data', 'load_aux_data']:
+                data_dict[attr_name] = getattr(self, attr_name)
+        
+        return data_dict
+
+    def load_aux_data(self, filename: str):
+        """
+        Load auxiliary configuration data from a YAML file.
+        Args:
+            filename (str): Name of the YAML file to load   
+        """
+
+        file_path = self.input_path / filename
+        if not file_path.exists():
+            raise FileNotFoundError(f"Auxiliary file {filename} not found in {self.input_path}")
+        
+        with open(file_path, 'r') as f:
+            self.aux_data = yaml.safe_load(f)
+
+        for key, value in self.aux_data.items():
+            setattr(self, key, value)
+        
