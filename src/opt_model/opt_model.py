@@ -2,6 +2,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import gurobipy as gp
+import copy 
+import matplotlib.pyplot as plt
 
 class OptModel:
 
@@ -219,73 +221,158 @@ class OptModel:
     def get_summary(self):
         return self.results.get('summary', {})
     
-    def create_scenario_analysis(self, base_params):
-        Scenarios = {}
+    def create_scenarios(self):
+        """Define different cost-structure scenarios."""
+        base_prices = self.data['hourly_prices']['hourly_energy_price'].values
+        base_tau_import = self.data['bus_info']['import_tariff_DKK/kWh']
+        base_tau_export = self.data['bus_info']['export_tariff_DKK/kWh']
+        base_E_min = self.E_min
 
-        base_prices = base_params['hourly_prices']['hourly_energy_price'].values
-        base_tau_import = base_params['bus_info']['import_tariff_DKK/kWh']
-        base_tau_export = base_params['bus_info']['export_tariff_DKK/kWh']
-
-        # Scenario 0: Base Case
-        Scenarios['Base Case'] = {
-            'name': 'Base Case',
-            'prices': base_prices,
-            'tau_import': base_tau_import,
-            'tau_export': base_tau_export
-        }
-
-        # Scenario 1: Constant Prices
-        Scenarios['Constant Prices'] = {
-            'name': 'Constant Prices',
-            'prices': np.full(24, base_prices.mean()),
-            'tau_import': base_tau_import,
-            'tau_export': base_tau_export
-
-        }
-
-        # Scenario 2: No tarifs
-        Scenarios['No Tariffs'] = {
-            'name': 'No Tariffs',
-            'prices': base_prices,
-            'tau_import': 0.0,
-            'tau_export': 0.0
-        }
-
-        #Scenario 3: No minimum energy requirement
-        Scenarios['No Min Energy'] = {
-            'name': 'No Min Energy',
-            'prices': base_prices,
-            'tau_import': base_tau_import,
-            'tau_export': base_tau_export,
-            'E_min': 0
-        }
-
-        # Scenario 4: High minimum energy requirement
-        Scenarios['High Min Energy'] = {
-            'name': 'High Min Energy',
-            'prices': base_prices,
-            'tau_import': base_tau_import,
-            'tau_export': base_tau_export,
-            'E_min': 36
-        }
-
-    def run_scenarios(self, base_params, Scenarios):
-        """Solving optimization for all scenarios"""
-        Scenario_results = {}
-
-        for scenario in Scenarios.items():
-            modified_data = base_params.copy()
-            modified_data['hourly_prices']['price'] = pd.DataFrame({
-                'hour': range(24),
-                'price': scenario['prices']
-            })
-            modified_data['bus_info']['import_tariff_DKK/kWh'] = scenario['tau_import']
-            modified_data['bus_info']['export_tariff_DKK/kWh'] = scenario['tau_export']
-
-            opt_model = OptModel(modified_data, scenario['name'])
-            opt_model.build_model()
-            opt_model.solve()
-            Scenario_results[scenario['name']] = {
-                'summary': opt_model.get_summary(),
-                'hourly': opt_model.get_hourly_results()
+        self.Scenarios = {
+            'Base Case': {
+                'name': 'Base Case',
+                'prices': base_prices,
+                'tau_import': base_tau_import,
+                'tau_export': base_tau_export,
+                'E_min': base_E_min
+            },
+            'Constant Prices': {
+                'name': 'Constant Prices',
+                'prices': np.full(24, base_prices.mean()),
+                'tau_import': base_tau_import,
+                'tau_export': base_tau_export,
+                'E_min': base_E_min
+            },
+            'No Tariffs': {
+                'name': 'No Tariffs',
+                'prices': base_prices,
+                'tau_import': 0.0,
+                'tau_export': 0.0,
+                'E_min': base_E_min
+            },
+            'High Import Tariff': {
+                'name': 'High Import Tariff',
+                'prices': base_prices,
+                'tau_import': base_tau_import * 2,
+                'tau_export': base_tau_export,
+                'E_min': base_E_min
+            },
+            'High Min Energy': {
+                'name': 'High Min Energy',
+                'prices': base_prices,
+                'tau_import': base_tau_import,
+                'tau_export': base_tau_export,
+                'E_min': 36
             }
+        }
+
+        print(f"✅ Created {len(self.Scenarios)} cost-structure scenarios.")
+        return self.Scenarios
+
+
+    def run_scenarios(self):
+        """Run optimization for all defined scenarios."""
+        if not hasattr(self, "Scenarios"):
+            raise ValueError("No scenarios found. Run self.create_scenarios() first.")
+
+        self.Scenario_results = {}
+
+        for name, params in self.Scenarios.items():
+            print(f"\n=== Running Scenario: {name} ===")
+
+            # Deep copy of base data
+            data_mod = copy.deepcopy(self.data)
+
+            # Apply scenario modifications
+            data_mod['hourly_prices']['hourly_energy_price'] = params['prices']
+            data_mod['bus_info']['import_tariff_DKK/kWh'] = params['tau_import']
+            data_mod['bus_info']['export_tariff_DKK/kWh'] = params['tau_export']
+
+            # Solve for this scenario
+            scenario_model = OptModel(data_mod, name)
+            scenario_model.E_min = params['E_min']
+            scenario_model.build_model()
+            scenario_model.solve()
+
+            # Store results
+            self.Scenario_results[name] = {
+                'summary': scenario_model.get_summary(),
+                'hourly': scenario_model.get_hourly_results(),
+                'duals': scenario_model.results['duals']
+            }
+
+        print("\n✅ Scenario analysis complete.")
+        return self.Scenario_results
+    
+    def analyze_scenarios(self):
+        """Compare flexibility and profits across scenarios."""
+        if not hasattr(self, "Scenario_results"):
+            raise ValueError("Run self.run_scenarios() first.")
+
+        summaries = pd.DataFrame([
+            {
+                'Scenario': name,
+                'Total Cost (DKK)': res['summary']['total_cost'],
+                'Total Import (kWh)': res['summary']['total_import'],
+                'Total Export (kWh)': res['summary']['total_export'],
+                'PV Curtailment (kWh)': res['summary']['total_pv_curtailed'],
+                'Load (kWh)': res['summary']['total_load']
+            }
+            for name, res in self.Scenario_results.items()
+        ])
+
+        print("\n=== Scenario Summary ===")
+        print(summaries.round(2))
+
+        # --- Plot: total cost comparison ---
+        plt.figure(figsize=(8, 4))
+        plt.bar(summaries['Scenario'], summaries['Total Cost (DKK)'], color='teal')
+        plt.ylabel('Total Daily Cost [DKK]')
+        plt.title('Impact of Cost Structures on Consumer Profitability')
+        plt.xticks(rotation=25)
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        plt.show()
+        return summaries
+
+    def plot_dual_prices(self, scenario_name):
+        """
+        Plot dual (shadow) prices λ_t vs. electricity price ± tariffs.
+        This visualizes whether the KKT dual bounds hold as in Q1(a)iii.
+        """
+
+        if not hasattr(self, "Scenario_results"):
+            raise ValueError("Run self.run_scenarios() first.")
+
+        if scenario_name not in self.Scenario_results:
+            raise ValueError(f"Scenario '{scenario_name}' not found.")
+
+        res = self.Scenario_results[scenario_name]
+        hourly = res['hourly']
+        duals = res['duals']
+
+        prices = hourly['price'].values
+
+        # ✅ Convert tariff values to scalar floats
+        tau_import = float(self.data['bus_info']['import_tariff_DKK/kWh'].iloc[0])
+        tau_export = float(self.data['bus_info']['export_tariff_DKK/kWh'].iloc[0])
+
+        buy_bound = prices + tau_import
+        sell_bound = prices - tau_export
+        lambdas = np.array(duals['mu'])  # shadow prices for energy balance
+
+        import matplotlib.pyplot as plt
+
+        plt.figure(figsize=(9, 5))
+        plt.plot(hourly['hour'], prices, 'k--', label='Market Price $p_t$')
+        plt.plot(hourly['hour'], buy_bound, 'r-', label='$p_t + \\tau_{imp}$ (Import bound)')
+        plt.plot(hourly['hour'], sell_bound, 'b-', label='$p_t - \\tau_{exp}$ (Export bound)')
+        plt.plot(hourly['hour'], lambdas, 'g-o', label='Dual price $\\lambda_t$')
+
+        plt.title(f'Dual Energy Prices – {scenario_name}')
+        plt.xlabel('Hour of Day')
+        plt.ylabel('Price [DKK/kWh]')
+        plt.legend(loc='best')
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        plt.show()
