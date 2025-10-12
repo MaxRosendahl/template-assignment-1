@@ -154,7 +154,26 @@ The repositories include base datasets under the `data/question_name` directorie
 **Note:**  
 These files allow customization of user behavior, DER production, and network constraints for simulation and optimization. Students can extend or replace these datasets as needed to conduct adequate simulations and sensitivity analysis. We recommend that any new or modified files follow the same structure for compatibility with the starter code, and easy grading. Please document all new datasets in this README.md file.
 
+
 ## Starter Code Structure
+
+**opt_model**
+Class for building and solving the optimization problem for question_1a. 
+Includes function for creating other scenarios and plotting them. 
+
+
+**BatteryInvestmentModel**
+Class for building and solving the optimization problem for question 2b.
+Utilizes data from question 1c to model the storage and constraints. 
+
+### How to run
+
+# Step 1: Run using environment
+
+# Step 2:
+In the root directory run python src/main.py
+-Results include: Results for problem 1a, summary table of alternate scenarios,
+plots for alternate scenarios, and results for 2b.
 
 ## Question 1(b): Flexible Consumer with Discomfort Minimization
 
@@ -178,3 +197,7 @@ python main_1b.py
 
 **Note:**  
 For reference, consult docs/readme_1b.md for the code related to question 1(b)
+
+
+# Authors:
+Andres, Max, and Hubert
