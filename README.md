@@ -178,3 +178,20 @@ python main_1b.py
 
 **Note:**  
 For reference, consult docs/readme_1b.md for the code related to question 1(b)
+
+## Question 2.b.iv: Battery investment profitability analysis
+
+## Running the Analysis
+
+```bash
+# Navigate to src directory
+cd src or cd..
+python main_2b.py or src/main_2b.py
+```
+
+Runtime: ~2 minutes
+
+Outputs:
+- 3 PNG figures (cost sensitivity, price volatility, tariff spread)
+- 3 CSV files (numerical results)
+- 1 TXT report (comprehensive findings)

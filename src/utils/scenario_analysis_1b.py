@@ -381,46 +381,7 @@ class ScenarioAnalysis1b:
             ax8.legend(fontsize=8)
             ax8.grid(True, alpha=0.3)
         
-        # Plot 9: Key insights summary (text)
-        ax9 = fig.add_subplot(gs[2, 2])
-        ax9.axis('off')
-        
-        # Calculate key insights
-        high_comfort = self.results['weight_analysis'][scenarios[0]]['summary']
-        low_comfort = self.results['weight_analysis'][scenarios[2]]['summary']
-        
-        cost_reduction = (high_comfort['total_cost'] - low_comfort['total_cost']) / abs(high_comfort['total_cost']) * 100 if high_comfort['total_cost'] != 0 else 0
-        discomfort_increase = (low_comfort['total_discomfort'] / high_comfort['total_discomfort']) if high_comfort['total_discomfort'] > 0 else 0
-        
-        insights_text = f"""KEY INSIGHTS:
-
-Cost Savings:
-  Low comfort saves {abs(cost_reduction):.1f}%
-  compared to high comfort
-
-Flexibility Trade-off:
-  Cost savings come at expense
-  of {discomfort_increase:.0f}x more discomfort
-
-Load Shifting:
-  High comfort: minimal shifting
-    (follows reference closely)
-  Low comfort: aggressive shifting
-    (follows price signals)
-
-Conclusion:
-  Weight ratio determines
-  flexibility vs comfort balance
-  No universally optimal choice
-    (depends on consumer type)
-"""
-        
-        ax9.text(0.1, 0.95, insights_text, 
-                transform=ax9.transAxes,
-                fontsize=9,
-                verticalalignment='top',
-                fontfamily='monospace',
-                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
+       
         
         plt.savefig('question_1b_weight_analysis.png', dpi=300, bbox_inches='tight')
         print("Saved figure: question_1b_weight_analysis.png\n")
