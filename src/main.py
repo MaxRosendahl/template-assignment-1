@@ -43,20 +43,21 @@ opt_model.print_summary()  # Display results
 
 #Alternate Scenarios
 
-# opt = OptModel(processed, "Scenario_Analysis")
+opt = OptModel(processed_1a, "Scenario_Analysis")
 
-# opt.create_scenarios()
-# opt.run_scenarios()
-# summary_table = opt.analyze_scenarios()
+opt.create_scenarios()
+opt.run_scenarios()
+summary_table = opt.analyze_scenarios()
 
-# opt.plot_dual_prices('Base Case')
-# opt.plot_dual_prices('High Import Tariff')
-# opt.plot_dual_prices('No Tariffs')
+opt.plot_dual_prices('Base Case')
+opt.plot_dual_prices('Constant Prices')
+opt.plot_dual_prices('High Import Tariff')
+opt.plot_dual_prices('No Tariffs')
 
-# for name, res in opt.Scenario_results.items():
-#     gamma = res['duals']['gamma']
-#     mu_range = [min(res['duals']['mu']), max(res['duals']['mu'])]
-#     print(f"{name}: γ = {gamma:.4f}, μ_t ∈ [{mu_range[0]:.2f}, {mu_range[1]:.2f}]")
+for name, res in opt.Scenario_results.items():
+    gamma = res['duals']['gamma']
+    mu_range = [min(res['duals']['mu']), max(res['duals']['mu'])]
+    print(f"{name}: γ = {gamma:.4f}, μ_t ∈ [{mu_range[0]:.2f}, {mu_range[1]:.2f}]")
 
 #============================================================================================
 #Question 2b. Battery Investment
