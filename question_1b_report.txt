@@ -1,0 +1,99 @@
+======================================================================
+QUESTION 1(b): NUMERICAL ANALYSIS REPORT
+Flexible Consumer with Discomfort Minimization
+======================================================================
+
+
+----------------------------------------------------------------------
+1. IMPACT OF FLEXIBILITY PREFERENCES (Weight Ratios)
+----------------------------------------------------------------------
+
+
+High Comfort (w_comfort=100):
+  Description: Comfort-prioritizing consumer (elderly, health-dependent)
+  w_cost/w_comfort ratio: 1.0/100.0
+  Total Cost: 0.55 DKK
+  Total Discomfort: 0.0017
+  Objective Value: 0.72
+  Max Load Deviation: 0.0150 kW
+  Avg Load Deviation: 0.0078 kW
+
+Balanced (w_comfort=1):
+  Description: Moderate consumer (typical residential)
+  w_cost/w_comfort ratio: 1.0/1.0
+  Total Cost: -9.41 DKK
+  Total Discomfort: 3.4715
+  Objective Value: -5.94
+  Max Load Deviation: 0.8800 kW
+  Avg Load Deviation: 0.2929 kW
+
+Low Comfort (w_comfort=0.01):
+  Description: Cost-prioritizing consumer (price-sensitive, flexible)
+  w_cost/w_comfort ratio: 1.0/0.01
+  Total Cost: -11.22 DKK
+  Total Discomfort: 6.0751
+  Objective Value: -11.16
+  Max Load Deviation: 0.9800 kW
+  Avg Load Deviation: 0.3881 kW
+
+Very Low Comfort (w_comfort=0.001):
+  Description: Extremely price-sensitive consumer
+  w_cost/w_comfort ratio: 1.0/0.001
+  Total Cost: -11.22 DKK
+  Total Discomfort: 6.0751
+  Objective Value: -11.22
+  Max Load Deviation: 0.9800 kW
+  Avg Load Deviation: 0.3881 kW
+
+----------------------------------------------------------------------
+2. IMPACT OF REFERENCE LOAD PATTERNS
+----------------------------------------------------------------------
+
+
+Flat Load:
+  Total Cost: -10.28 DKK
+  Total Discomfort: 4.7818
+  Objective Value: -5.49
+  Max Load Deviation: 0.5000 kW
+
+Evening Peak:
+  Total Cost: -9.48 DKK
+  Total Discomfort: 5.4672
+  Objective Value: -4.01
+  Max Load Deviation: 0.9000 kW
+
+Day Peak:
+  Total Cost: -7.98 DKK
+  Total Discomfort: 2.9744
+  Objective Value: -5.00
+  Max Load Deviation: 0.6000 kW
+
+Anti-correlated PV:
+  Total Cost: -9.24 DKK
+  Total Discomfort: 8.4536
+  Objective Value: -0.79
+  Max Load Deviation: 0.8000 kW
+
+Correlated PV:
+  Total Cost: -10.48 DKK
+  Total Discomfort: 0.7068
+  Objective Value: -9.77
+  Max Load Deviation: 0.3250 kW
+
+======================================================================
+KEY INSIGHTS AND CONCLUSIONS
+======================================================================
+
+1. Weight ratio (w_comfort/w_cost) fundamentally determines trade-off:
+   - High w_comfort leads to minimal load shifting, high costs, low discomfort
+   - Low w_comfort leads to aggressive load shifting, low costs, high discomfort
+
+2. Reference load pattern significantly impacts profitability:
+   - PV-correlated loads lead to lowest cost and discomfort (aligned incentives)
+   - Anti-PV loads lead to high cost or high discomfort (conflicting incentives)
+
+3. No universally optimal solution - depends on consumer type:
+   - Elderly/health-dependent consumers prefer high comfort weight
+   - Young/price-sensitive consumers prefer low comfort weight
+
+======================================================================

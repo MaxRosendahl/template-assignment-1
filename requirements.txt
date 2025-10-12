@@ -2,18 +2,18 @@
 # update as needed
 
 # Core optimizer
-gurobipy>=11.0.0
+#gurobipy>=11.0.0
 
 # Numerics & data handling
 numpy>=1.26
 pandas>=2.1
-json
-csv
+#json
+#csv
 
 # Plotting
 matplotlib>=3.8
 seaborn>=0.13
-plotly>=5.22
+#plotly>=5.22
 
 # Notebooks (to run and visualize results)
 jupyterlab>=4.2
