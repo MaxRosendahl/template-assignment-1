@@ -168,7 +168,7 @@ analysis.analyze_weight_impact()
 
 ### Expected Findings
 
-Based on the mathematical analysis and rubric requirements:
+Based on the mathematical analysis:
 
 1. **Weight Ratio Impact**:
    - High w_comfort → Minimal load shifting, follows reference closely
@@ -189,85 +189,6 @@ Based on the mathematical analysis and rubric requirements:
    - Energy balance: Always binding (equality)
    - Load capacity: More likely when reference high
    - Grid limits: Never binding (too large)
-
-## Validation and Debugging
-
-### Checklist
-
-- [ ] Model solves to optimality (status = 2)
-- [ ] Energy balance satisfied at each hour (∑imports = ∑exports)
-- [ ] Load follows reference when w_comfort high
-- [ ] Load follows prices when w_comfort low
-- [ ] Objective value = w_cost×Cost + w_comfort×Discomfort
-- [ ] Dual variables extracted successfully
-- [ ] Figures generated without errors
-- [ ] CSV files contain expected columns
-
-### Common Issues
-
-**Issue 1: Model infeasible**
-- Check data loading (reference load profile present?)
-- Verify variable bounds are reasonable
-- Ensure PV profile and price data have 24 values
-
-**Issue 2: Dual variables not extracted**
-- Set `model.setParam('QCPDual', 1)` before solving
-- QP duals require special Gurobi parameter
-
-**Issue 3: Objective value seems wrong**
-- Check weight values (w_cost, w_comfort)
-- Verify cost calculation: (price + τ_import) for imports
-- Confirm discomfort = sum of squared deviations
-
-**Issue 4: Plots not showing**
-- Ensure matplotlib backend configured correctly
-- Check that results exist before plotting
-- Try `plt.show()` if running interactively
-
-## Comparison with Question 1(a)
-
-| Aspect | Question 1(a) | Question 1(b) |
-|--------|---------------|---------------|
-| Problem Type | LP | QP |
-| Objective | Cost only | Cost + Discomfort |
-| Min Energy | Yes (8 kWh) | No |
-| Reference Load | N/A | Required input |
-| Weights | N/A | w_cost, w_comfort |
-| Solution Uniqueness | May not be unique | Unique (strict convexity) |
-| Load Flexibility | Fully flexible | Constrained by discomfort |
-
-## Grading Rubric Alignment
-
-This implementation addresses all rubric requirements:
-
-### (i) Formulation (4 points)
-- ✅ Adapted from 1(a) with clear changes
-- ✅ Added discomfort term and weights
-- ✅ Removed minimum energy constraint
-- ✅ All notations defined
-
-### (ii) Dual/KKT (4 points)
-- ✅ Dual variables extracted (π_t^balance)
-- ✅ Mathematical formulation in LaTeX document
-- ✅ Properties described
-
-### (iii) Qualitative Analysis (4 points)
-- ✅ Impact of weights discussed
-- ✅ Impact of reference load analyzed
-- ✅ Binding constraints identified
-- ✅ Comparison with 1(a) provided
-
-### (iv) Implementation (1 point)
-- ✅ Well-documented code
-- ✅ Follows OOP structure
-- ✅ Easy to use and debug
-
-### (v) Numerical Analysis (4 points)
-- ✅ Multiple weight scenarios
-- ✅ Multiple load profile scenarios
-- ✅ Primal and dual variables reported
-- ✅ Insights presented with visual aids
-- ✅ Results align with theoretical analysis
 
 ## Advanced Usage
 
@@ -316,27 +237,3 @@ for ratio in ratios:
         'cost': model.get_summary()['total_cost'],
         'discomfort': model.get_summary()['total_discomfort']
     })
-
-# Plot Pareto frontier
-import matplotlib.pyplot as plt
-df = pd.DataFrame(results)
-plt.plot(df['discomfort'], df['cost'], 'o-')
-plt.xlabel('Total Discomfort')
-plt.ylabel('Total Cost [DKK]')
-plt.title('Pareto Frontier: Cost vs Comfort')
-plt.show()
-```
-
-## References
-
-- Assignment document: `Assignment_1.pdf`
-- Mathematical formulation: `Optimization_assignment_1_part1b_Andres.tex`
-- Base implementation (1a): `src/opt_model/opt_model.py`
-- Course materials: 46750 - Optimization in Modern Power Systems
-
-## Contact
-
-For questions about this implementation:
-- Check the comprehensive comments in the code
-- Review the assignment document
-- Consult the LaTeX mathematical formulation

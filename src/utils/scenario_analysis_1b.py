@@ -3,6 +3,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import copy
+import sys
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.append(str(Path(__file__).parent.parent))
+
 from opt_model.opt_model_1b import OptModel1b
 
 
@@ -63,7 +69,7 @@ class ScenarioAnalysis1b:
             }
         }
         
-        print(f"✓ Created {len(self.scenarios['weight_scenarios'])} weight scenarios\n")
+        print(f"Created {len(self.scenarios['weight_scenarios'])} weight scenarios\n")
     
     def create_load_profile_scenarios(self):
         """
@@ -116,7 +122,7 @@ class ScenarioAnalysis1b:
             'Correlated PV': corr_pv
         }
         
-        print(f"✓ Created {len(self.scenarios['load_profiles'])} load profile scenarios\n")
+        print(f"Created {len(self.scenarios['load_profiles'])} load profile scenarios\n")
     
     def run_weight_scenarios(self):
         """Run optimization for all weight scenarios."""
@@ -130,11 +136,11 @@ class ScenarioAnalysis1b:
         self.results['weight_analysis'] = {}
         
         for name, params in self.scenarios['weight_scenarios'].items():
-            print(f"\n{'─'*60}")
+            print(f"\n{'-'*60}")
             print(f"Scenario: {name}")
             print(f"  {params['description']}")
             print(f"  w_cost = {params['w_cost']}, w_comfort = {params['w_comfort']}")
-            print(f"{'─'*60}")
+            print(f"{'-'*60}")
             
             # Create model with specific weights
             model = OptModel1b(
@@ -154,9 +160,11 @@ class ScenarioAnalysis1b:
                     'hourly': model.get_hourly_results(),
                     'params': params
                 }
+            else:
+                print(f"WARNING: {name} failed to solve optimally")
         
         print(f"\n{'='*60}")
-        print(f"✓ Completed {len(self.results['weight_analysis'])} weight scenarios")
+        print(f"Completed {len(self.results['weight_analysis'])} weight scenarios")
         print(f"{'='*60}\n")
     
     def run_load_profile_scenarios(self, w_cost=1.0, w_comfort=1.0):
@@ -178,9 +186,9 @@ class ScenarioAnalysis1b:
         self.results['load_profile_analysis'] = {}
         
         for name, profile in self.scenarios['load_profiles'].items():
-            print(f"\n{'─'*60}")
+            print(f"\n{'-'*60}")
             print(f"Load Profile: {name}")
-            print(f"{'─'*60}")
+            print(f"{'-'*60}")
             
             # Create modified data with new reference load
             data_mod = copy.deepcopy(self.base_data)
@@ -207,9 +215,11 @@ class ScenarioAnalysis1b:
                     'hourly': model.get_hourly_results(),
                     'profile': profile
                 }
+            else:
+                print(f"WARNING: {name} failed to solve optimally")
         
         print(f"\n{'='*60}")
-        print(f"✓ Completed {len(self.results['load_profile_analysis'])} load profile scenarios")
+        print(f"Completed {len(self.results['load_profile_analysis'])} load profile scenarios")
         print(f"{'='*60}\n")
     
     def analyze_weight_impact(self):
@@ -217,8 +227,8 @@ class ScenarioAnalysis1b:
         Analyze and visualize impact of weight ratios.
         Returns summary table and creates visualizations.
         """
-        if 'weight_analysis' not in self.results:
-            print("⚠ No weight analysis results. Run run_weight_scenarios() first.")
+        if 'weight_analysis' not in self.results or len(self.results['weight_analysis']) == 0:
+            print("WARNING: No weight analysis results. Run run_weight_scenarios() first.")
             return None
         
         print(f"\n{'='*60}")
@@ -256,8 +266,12 @@ class ScenarioAnalysis1b:
     def _plot_weight_comparison(self):
         """Create comprehensive comparison plots for weight scenarios."""
         
-        fig = plt.figure(figsize=(18, 12))
-        gs = fig.add_gridspec(4, 3, hspace=0.3, wspace=0.3)
+        if len(self.results['weight_analysis']) == 0:
+            print("WARNING: No results to plot")
+            return
+        
+        fig = plt.figure(figsize=(16, 10))
+        gs = fig.add_gridspec(3, 3, hspace=0.3, wspace=0.3)
         
         fig.suptitle('Question 1(b): Impact of Flexibility Preferences (Weight Ratios)',
                      fontsize=16, fontweight='bold', y=0.995)
@@ -270,26 +284,25 @@ class ScenarioAnalysis1b:
         ax1 = fig.add_subplot(gs[0, 0])
         for i, (name, res) in enumerate(self.results['weight_analysis'].items()):
             summary = res['summary']
-            # Use absolute cost values for better visualization
-            ax1.scatter(summary['total_discomfort'], abs(summary['total_cost']),
-                       s=200, alpha=0.7, color=colors[i], 
+            ax1.scatter(summary['total_discomfort'], summary['total_cost'],
+                       s=200, alpha=0.7, color=colors[i % len(colors)], 
                        label=name.split('(')[0].strip())
         ax1.set_xlabel('Total Discomfort', fontsize=10)
-        ax1.set_ylabel('Total Cost |DKK| (Absolute)', fontsize=10)
+        ax1.set_ylabel('Total Cost [DKK]', fontsize=10)
         ax1.set_title('Cost vs Discomfort Trade-off', fontsize=11, fontweight='bold')
         ax1.legend(fontsize=8)
         ax1.grid(True, alpha=0.3)
         
-        # Plot 2: Cost comparison (absolute values)
+        # Plot 2: Objective value comparison
         ax2 = fig.add_subplot(gs[0, 1])
-        cost_vals = [abs(self.results['weight_analysis'][s]['summary']['total_cost']) 
+        obj_vals = [self.results['weight_analysis'][s]['summary']['objective_value'] 
                     for s in scenarios]
-        bars = ax2.bar(range(len(scenarios)), cost_vals, color=colors, alpha=0.7)
+        bars = ax2.bar(range(len(scenarios)), obj_vals, color=colors[:len(scenarios)], alpha=0.7)
         ax2.set_xticks(range(len(scenarios)))
         ax2.set_xticklabels([s.split('(')[0].strip() for s in scenarios], 
                             rotation=15, ha='right', fontsize=9)
-        ax2.set_ylabel('Total Cost |DKK| (Absolute)', fontsize=10)
-        ax2.set_title('Cost Comparison', fontsize=11, fontweight='bold')
+        ax2.set_ylabel('Objective Value', fontsize=10)
+        ax2.set_title('Total Objective Value', fontsize=11, fontweight='bold')
         ax2.grid(True, alpha=0.3, axis='y')
         
         # Plot 3: Load deviation metrics
@@ -310,30 +323,30 @@ class ScenarioAnalysis1b:
         ax3.legend(fontsize=8)
         ax3.grid(True, alpha=0.3, axis='y')
         
-        # Plot 4-6: Load profiles for each scenario (2x2 grid in middle row)
-        plot_positions = [(1, 0), (1, 1), (1, 2), (2, 0)]  # Fixed positions for 4 scenarios
-        for idx, (name, res) in enumerate(self.results['weight_analysis'].items()):
-            if idx < 4:  # Only plot first 4 scenarios
-                ax = fig.add_subplot(gs[plot_positions[idx][0], plot_positions[idx][1]])
-                df = res['hourly']
-                
-                ax.plot(df['hour'], df['p_ref'], 's--', label='Reference', 
-                       color='gray', alpha=0.5, markersize=3, linewidth=1.5)
-                ax.plot(df['hour'], df['P_load'], 'o-', label='Optimal Load', 
-                       color=colors[idx], linewidth=2, markersize=4)
-                ax.fill_between(df['hour'], df['p_ref'], df['P_load'], 
-                               alpha=0.2, color=colors[idx])
-                
-                ax.set_xlabel('Hour', fontsize=9)
-                ax.set_ylabel('Load [kW]', fontsize=9)
-                ax.set_title(f'{name.split("(")[0].strip()}', 
-                            fontsize=10, fontweight='bold')
-                ax.legend(fontsize=8, loc='upper left')
-                ax.grid(True, alpha=0.3)
-                ax.set_xlim(-0.5, 23.5)
+        # Plot 4-6: Load profiles for first 3 scenarios
+        for idx in range(min(3, len(scenarios))):
+            name = scenarios[idx]
+            res = self.results['weight_analysis'][name]
+            ax = fig.add_subplot(gs[1 + idx//2, idx%2])
+            df = res['hourly']
+            
+            ax.plot(df['hour'], df['p_ref'], 's--', label='Reference', 
+                   color='gray', alpha=0.5, markersize=3, linewidth=1.5)
+            ax.plot(df['hour'], df['P_load'], 'o-', label='Optimal Load', 
+                   color=colors[idx], linewidth=2, markersize=4)
+            ax.fill_between(df['hour'], df['p_ref'], df['P_load'], 
+                           alpha=0.2, color=colors[idx])
+            
+            ax.set_xlabel('Hour', fontsize=9)
+            ax.set_ylabel('Load [kW]', fontsize=9)
+            ax.set_title(f'{name.split("(")[0].strip()}', 
+                        fontsize=10, fontweight='bold')
+            ax.legend(fontsize=8, loc='upper left')
+            ax.grid(True, alpha=0.3)
+            ax.set_xlim(-0.5, 23.5)
         
         # Plot 7: Energy flows comparison
-        ax7 = fig.add_subplot(gs[3, 0])
+        ax7 = fig.add_subplot(gs[2, 0])
         import_vals = [self.results['weight_analysis'][s]['summary']['total_import'] 
                        for s in scenarios]
         export_vals = [self.results['weight_analysis'][s]['summary']['total_export'] 
@@ -353,71 +366,54 @@ class ScenarioAnalysis1b:
         ax7.grid(True, alpha=0.3, axis='y')
         
         # Plot 8: Dual prices for one scenario (Balanced)
-        ax8 = fig.add_subplot(gs[3, 1])
-        balanced = self.results['weight_analysis']['Balanced (w_comfort=1)']
-        df = balanced['hourly']
-        duals = balanced['model'].results['duals']['pi_balance']
-        ax8.plot(df['hour'], duals, 'o-', color='purple', linewidth=2, 
-                label='π_t (Shadow Price)')
-        ax8.plot(df['hour'], df['price'], '--', color='black', 
-                alpha=0.5, linewidth=1.5, label='Market Price')
-        ax8.set_xlabel('Hour', fontsize=9)
-        ax8.set_ylabel('Price [DKK/kWh]', fontsize=9)
-        ax8.set_title('Shadow Prices (Balanced Case)', fontsize=10, fontweight='bold')
-        ax8.legend(fontsize=8)
-        ax8.grid(True, alpha=0.3)
+        if 'Balanced (w_comfort=1)' in self.results['weight_analysis']:
+            ax8 = fig.add_subplot(gs[2, 1])
+            balanced = self.results['weight_analysis']['Balanced (w_comfort=1)']
+            df = balanced['hourly']
+            duals = balanced['model'].results['duals']['pi_balance']
+            ax8.plot(df['hour'], duals, 'o-', color='purple', linewidth=2, 
+                    label='pi_t (Shadow Price)')
+            ax8.plot(df['hour'], df['price'], '--', color='black', 
+                    alpha=0.5, linewidth=1.5, label='Market Price')
+            ax8.set_xlabel('Hour', fontsize=9)
+            ax8.set_ylabel('Price [DKK/kWh]', fontsize=9)
+            ax8.set_title('Shadow Prices (Balanced Case)', fontsize=10, fontweight='bold')
+            ax8.legend(fontsize=8)
+            ax8.grid(True, alpha=0.3)
         
         # Plot 9: Key insights summary (text)
-        ax9 = fig.add_subplot(gs[3, 2])
+        ax9 = fig.add_subplot(gs[2, 2])
         ax9.axis('off')
         
         # Calculate key insights
-        high_comfort = self.results['weight_analysis']['High Comfort (w_comfort=100)']['summary']
-        low_comfort = self.results['weight_analysis']['Low Comfort (w_comfort=0.01)']['summary']
+        high_comfort = self.results['weight_analysis'][scenarios[0]]['summary']
+        low_comfort = self.results['weight_analysis'][scenarios[2]]['summary']
         
-        # Fix percentage calculations - handle negative costs properly
-        high_cost_abs = abs(high_comfort['total_cost'])
-        low_cost_abs = abs(low_comfort['total_cost'])
-        
-        if high_cost_abs > 0:
-            cost_reduction = (high_cost_abs - low_cost_abs) / high_cost_abs * 100
-        else:
-            cost_reduction = 0
-            
-        if high_comfort['total_discomfort'] > 0:
-            discomfort_increase = (low_comfort['total_discomfort'] - high_comfort['total_discomfort']) / high_comfort['total_discomfort'] * 100
-        else:
-            discomfort_increase = 0
+        cost_reduction = (high_comfort['total_cost'] - low_comfort['total_cost']) / abs(high_comfort['total_cost']) * 100 if high_comfort['total_cost'] != 0 else 0
+        discomfort_increase = (low_comfort['total_discomfort'] / high_comfort['total_discomfort']) if high_comfort['total_discomfort'] > 0 else 0
         
         insights_text = f"""KEY INSIGHTS:
 
 Cost Savings:
-• Low comfort saves {cost_reduction:.1f}%
+  Low comfort saves {abs(cost_reduction):.1f}%
   compared to high comfort
 
 Flexibility Trade-off:
-• Cost savings come at expense
-  of {discomfort_increase:.0f}% more discomfort
-
-Absolute Values:
-• High comfort cost: {high_cost_abs:.2f} DKK
-• Low comfort cost: {low_cost_abs:.2f} DKK
+  Cost savings come at expense
+  of {discomfort_increase:.0f}x more discomfort
 
 Load Shifting:
-• High comfort: minimal shifting
-  (follows reference closely)
-• Low comfort: aggressive shifting
-  (follows price signals)
+  High comfort: minimal shifting
+    (follows reference closely)
+  Low comfort: aggressive shifting
+    (follows price signals)
 
 Conclusion:
-• Weight ratio determines
+  Weight ratio determines
   flexibility vs comfort balance
-• No universally optimal choice
-  (depends on consumer type)
-
-Note: Negative costs indicate
-net savings (export revenue
-> import costs)"""
+  No universally optimal choice
+    (depends on consumer type)
+"""
         
         ax9.text(0.1, 0.95, insights_text, 
                 transform=ax9.transAxes,
@@ -426,17 +422,17 @@ net savings (export revenue
                 fontfamily='monospace',
                 bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
         
-        plt.savefig('question_1b_weight_analysis.png', dpi=300, bbox_inches='tight', facecolor='white')
-        print("✓ Saved figure: question_1b_weight_analysis.png\n")
-        plt.show()
+        plt.savefig('question_1b_weight_analysis.png', dpi=300, bbox_inches='tight')
+        print("Saved figure: question_1b_weight_analysis.png\n")
+        plt.close()
     
     def analyze_load_profile_impact(self):
         """
         Analyze and visualize impact of different load profiles.
         Returns summary table and creates visualizations.
         """
-        if 'load_profile_analysis' not in self.results:
-            print("⚠ No load profile analysis results. Run run_load_profile_scenarios() first.")
+        if 'load_profile_analysis' not in self.results or len(self.results['load_profile_analysis']) == 0:
+            print("WARNING: No load profile analysis results. Run run_load_profile_scenarios() first.")
             return None
         
         print(f"\n{'='*60}")
@@ -470,6 +466,10 @@ net savings (export revenue
     
     def _plot_load_profile_comparison(self):
         """Create comparison plots for load profile scenarios."""
+        
+        if len(self.results['load_profile_analysis']) == 0:
+            print("WARNING: No results to plot")
+            return
         
         fig, axes = plt.subplots(3, 2, figsize=(14, 12))
         fig.suptitle('Question 1(b): Impact of Reference Load Patterns',
@@ -539,8 +539,8 @@ net savings (export revenue
         # Find best and worst by objective value
         obj_dict = {p: self.results['load_profile_analysis'][p]['summary']['objective_value'] 
                     for p in profiles}
-        best_profile = min(obj_dict, key=obj_dict.get)
-        worst_profile = max(obj_dict, key=obj_dict.get)
+        best_profile = max(obj_dict, key=obj_dict.get)
+        worst_profile = min(obj_dict, key=obj_dict.get)
         
         for idx, profile_name in enumerate([best_profile, worst_profile]):
             ax = axes[2, idx]
@@ -563,8 +563,8 @@ net savings (export revenue
         
         plt.tight_layout()
         plt.savefig('question_1b_load_profile_analysis.png', dpi=300, bbox_inches='tight')
-        print("✓ Saved figure: question_1b_load_profile_analysis.png\n")
-        plt.show()
+        print("Saved figure: question_1b_load_profile_analysis.png\n")
+        plt.close()
     
     def generate_report(self, save_path='question_1b_report.txt'):
         """Generate comprehensive text report of all results."""
@@ -577,7 +577,7 @@ net savings (export revenue
         report.append("")
         
         # Weight scenarios summary
-        if 'weight_analysis' in self.results:
+        if 'weight_analysis' in self.results and len(self.results['weight_analysis']) > 0:
             report.append("\n" + "-"*70)
             report.append("1. IMPACT OF FLEXIBILITY PREFERENCES (Weight Ratios)")
             report.append("-"*70)
@@ -597,7 +597,7 @@ net savings (export revenue
                 report.append(f"  Avg Load Deviation: {summary['avg_load_deviation']:.4f} kW")
         
         # Load profile scenarios summary
-        if 'load_profile_analysis' in self.results:
+        if 'load_profile_analysis' in self.results and len(self.results['load_profile_analysis']) > 0:
             report.append("\n" + "-"*70)
             report.append("2. IMPACT OF REFERENCE LOAD PATTERNS")
             report.append("-"*70)
@@ -618,16 +618,16 @@ net savings (export revenue
         report.append("="*70)
         report.append("")
         report.append("1. Weight ratio (w_comfort/w_cost) fundamentally determines trade-off:")
-        report.append("   - High w_comfort → minimal load shifting, high costs, low discomfort")
-        report.append("   - Low w_comfort → aggressive load shifting, low costs, high discomfort")
+        report.append("   - High w_comfort leads to minimal load shifting, high costs, low discomfort")
+        report.append("   - Low w_comfort leads to aggressive load shifting, low costs, high discomfort")
         report.append("")
         report.append("2. Reference load pattern significantly impacts profitability:")
-        report.append("   - PV-correlated loads → lowest cost and discomfort (aligned incentives)")
-        report.append("   - Anti-PV loads → high cost or high discomfort (conflicting incentives)")
+        report.append("   - PV-correlated loads lead to lowest cost and discomfort (aligned incentives)")
+        report.append("   - Anti-PV loads lead to high cost or high discomfort (conflicting incentives)")
         report.append("")
         report.append("3. No universally optimal solution - depends on consumer type:")
-        report.append("   - Elderly/health-dependent → high comfort weight")
-        report.append("   - Young/price-sensitive → low comfort weight")
+        report.append("   - Elderly/health-dependent consumers prefer high comfort weight")
+        report.append("   - Young/price-sensitive consumers prefer low comfort weight")
         report.append("")
         report.append("="*70)
         
@@ -636,7 +636,7 @@ net savings (export revenue
         with open(save_path, 'w') as f:
             f.write(report_text)
         
-        print(f"\n✓ Report saved to: {save_path}\n")
+        print(f"\nReport saved to: {save_path}\n")
         print(report_text)
         
         return report_text

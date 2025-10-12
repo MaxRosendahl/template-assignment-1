@@ -156,3 +156,25 @@ These files allow customization of user behavior, DER production, and network co
 
 ## Starter Code Structure
 
+## Question 1(b): Flexible Consumer with Discomfort Minimization
+
+### Overview
+Extends Question 1(a) by:
+- Adding quadratic discomfort minimization term
+- Removing minimum energy constraint  
+- Introducing cost/comfort weight parameters
+
+## Running the Code
+
+### Quick Start
+
+```bash
+# Navigate to src directory
+cd src
+
+# Run complete Question 1(b) analysis
+python main_1b.py
+```
+
+**Note:**  
+For reference, consult docs/readme_1b.md for the code related to question 1(b)

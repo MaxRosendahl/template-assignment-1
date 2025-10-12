@@ -1,3 +1,4 @@
+
 import gurobipy as gp
 from gurobipy import GRB
 import pandas as pd
@@ -98,6 +99,7 @@ class OptModel1b:
         
         self.model.setParam('OutputFlag', 1)
         self.model.setParam('QCPDual', 1)  # Enable QP dual variables
+        self.model.update()
         
         print(f"\nModel statistics:")
         print(f"  Variables: {self.model.NumVars}")
